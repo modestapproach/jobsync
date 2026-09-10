@@ -10,6 +10,7 @@ import { AuthError } from "next-auth";
 vi.mock("@/lib/db", () => {
   const mockPrisma = {
     user: {
+      count: vi.fn().mockResolvedValue(0),
       findUnique: vi.fn(),
       create: vi.fn(),
     },
@@ -102,6 +103,19 @@ describe("Auth Actions", () => {
         })),
       });
     });
+
+    it("refuses registration once any account exists (single-owner deployment)", async () => {
+
+      (prisma.user.count as any).mockResolvedValueOnce(1);
+
+      const result = await signup({ name: "Second", email: "second@example.com", password: "Password123!" });
+
+      expect(result).toEqual({ error: "Registration is closed." });
+
+      expect(prisma.user.create).not.toHaveBeenCalled();
+
+    });
+
 
     it("should return error if user already exists", async () => {
       const existingUser = {
