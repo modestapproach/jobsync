@@ -146,6 +146,22 @@ export const McpFindJobInputShape = {
 };
 
 export const McpFindJobSchema = z.object(McpFindJobInputShape);
+
+// list_jobs — read-only overview of saved roles. Bounded so a tool result can
+// never balloon past the model's context; callers page with offset.
+export const McpListJobsInputShape = {
+  status: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("Filter by status value (e.g. saved, applied, interviewing). Omit for all."),
+  applied: z.boolean().optional().describe("true = only applied roles, false = only not-yet-applied."),
+  limit: z.number().int().min(1).max(100).default(25).describe("Max rows to return (1-100, default 25)."),
+  offset: z.number().int().min(0).default(0).describe("Rows to skip, for paging."),
+};
+export const McpListJobsSchema = z.object(McpListJobsInputShape);
+export type McpListJobsInput = z.infer<typeof McpListJobsSchema>;
 export type McpFindJobInput = z.infer<typeof McpFindJobSchema>;
 
 // update_job — every field except jobId is optional; only supplied fields

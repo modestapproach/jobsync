@@ -15,6 +15,8 @@ import {
   McpSaveResumeReviewSchema,
   McpFindJobInputShape,
   McpFindJobSchema,
+  McpListJobsInputShape,
+  McpListJobsSchema,
   McpUpdateJobInputShape,
   McpUpdateJobSchema,
   McpAddJobsBatchInputShape,
@@ -28,6 +30,7 @@ import { handleSaveMatchResult } from "@/lib/mcp/tools/saveMatchResult";
 import { handleReviewResume } from "@/lib/mcp/tools/reviewResume";
 import { handleSaveResumeReview } from "@/lib/mcp/tools/saveResumeReview";
 import { handleFindJob } from "@/lib/mcp/tools/findJob";
+import { handleListJobs } from "@/lib/mcp/tools/listJobs";
 import { handleUpdateJob } from "@/lib/mcp/tools/updateJob";
 import { handleAddJobsBatch } from "@/lib/mcp/tools/addJobsBatch";
 import { handleSaveMatchResultsBatch } from "@/lib/mcp/tools/saveMatchResultsBatch";
@@ -82,6 +85,31 @@ async function handler(req: Request): Promise<Response> {
         };
       }
       return handleAddJob(parsed.data, userId, tokenName);
+    },
+  );
+
+  server.tool(
+    "list_jobs",
+    MCP_TOOL_DESCRIPTIONS.list_jobs,
+    McpListJobsInputShape,
+    async (rawInput) => {
+      // Read tool: either scope suffices. jobs:read is the PRD's read-only
+      // scope; existing tokens carry jobs:write.
+      if (!auth.scopes.includes("jobs:read") && !auth.scopes.includes("jobs:write")) {
+        return {
+          content: [
+            { type: "text" as const, text: "Insufficient scope. Required: jobs:read or jobs:write" },
+          ],
+        };
+      }
+      const parsed = McpListJobsSchema.safeParse(rawInput);
+      if (!parsed.success) {
+        const issues = parsed.error.issues.map((i) => i.message).join("; ");
+        return {
+          content: [{ type: "text" as const, text: `Validation error: ${issues}` }],
+        };
+      }
+      return handleListJobs(parsed.data, userId);
     },
   );
 

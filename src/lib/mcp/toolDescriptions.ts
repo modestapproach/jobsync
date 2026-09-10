@@ -5,6 +5,8 @@
 export const MCP_TOOL_DESCRIPTIONS = {
   add_job:
     "Add a job application to JobSync. Resolves or creates company, job title, location, and source by name. Returns a transparency report of what was matched vs. created.",
+  list_jobs:
+    "List the user's saved roles, newest first: id, title, company, status, applied flag/date, due date, match score, URL. Use this to answer 'what do I have saved / where am I with X' and to find ids for update_job. Filter by status or applied; page with limit/offset.",
   find_job:
     "Look up whether a job posting is already saved in JobSync, by URL. Call this before add_job when re-running a search. With no URL to look up, use add_job's upsert instead of skipping dedupe.",
   update_job:
