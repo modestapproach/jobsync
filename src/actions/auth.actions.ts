@@ -19,6 +19,13 @@ export async function signup(formData: {
 
   const { name, email, password } = parsed.data;
 
+  // Single-owner deployment: once any account exists, public registration is
+  // closed. Set SIGNUP_OPEN=true to reopen it deliberately (e.g. to add a
+  // second user); otherwise a public URL must not accept new sign-ups.
+  if (process.env.SIGNUP_OPEN !== "true" && (await prisma.user.count()) > 0) {
+    return { error: "Registration is closed." };
+  }
+
   const existingUser = await prisma.user.findUnique({
     where: { email },
   });
