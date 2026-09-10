@@ -1,4 +1,4 @@
-import cron, { ScheduledTask } from "node-cron";
+import type { ScheduledTask } from "node-cron";
 import { SCHEDULER_CONSTANTS } from "@/lib/constants";
 import db from "@/lib/db";
 import { runAutomation, AutomationAlreadyRunningError } from "@/lib/scraper";
@@ -7,7 +7,7 @@ import { log } from "@/lib/telemetry";
 
 let scheduledTask: ScheduledTask | null = null;
 
-async function runDueAutomations() {
+export async function runDueAutomations() {
   const now = new Date();
   log.info("[Scheduler] Checking for due automations", {
     "scheduler.checked_at": now.toISOString(),
@@ -121,7 +121,7 @@ async function runDueAutomations() {
   }
 }
 
-export function startScheduler() {
+export async function startScheduler() {
   if (!SCHEDULER_CONSTANTS.ENABLED) {
     log.info("[Scheduler] Disabled via SCHEDULER_CONSTANTS.ENABLED");
     return;
@@ -134,6 +134,9 @@ export function startScheduler() {
 
   const cronExpression = SCHEDULER_CONSTANTS.CRON_EXPRESSION;
 
+  // A resident timer only exists on a long-lived Node host. On Workers the
+  // Cron Trigger in worker.ts calls runDueAutomations via /api/automations/tick.
+  const cron = (await import("node-cron")).default;
   if (!cron.validate(cronExpression)) {
     log.error("[Scheduler] Invalid cron expression", {
       "scheduler.cron": cronExpression,

@@ -7,9 +7,9 @@ import {
   uploadFile,
 } from "@/actions/profile.actions";
 import path from "path";
-import fs from "fs";
 import { getTimestampedFileName } from "@/lib/utils";
 import { APP_CONSTANTS } from "@/lib/constants";
+import { getStorage } from "@/lib/storage";
 import { PDF_MAGIC, ZIP_MAGIC } from "@/lib/ai/import/extract-text";
 import { log } from "@/lib/telemetry";
 
@@ -129,7 +129,8 @@ export const GET = async (req: NextRequest) => {
     }
 
     const fullFilePath = path.join(filePath);
-    if (!fs.existsSync(fullFilePath)) {
+    const stored = await getStorage().get(fullFilePath);
+    if (!stored) {
       return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
 
@@ -150,7 +151,7 @@ export const GET = async (req: NextRequest) => {
       );
     }
 
-    const fileContent = fs.readFileSync(fullFilePath);
+    const fileContent = Buffer.from(stored);
 
     // Strip CR/LF from filename to prevent header injection
     const safeFileName = fileName.replace(/[\r\n"]/g, "_");

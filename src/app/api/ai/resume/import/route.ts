@@ -3,8 +3,7 @@ import "server-only";
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { streamText, Output } from "ai";
-import path from "path";
-import fs from "fs";
+import { getStorage, toObjectKey } from "@/lib/storage";
 import { getModel } from "@/lib/ai/providers";
 import { checkRateLimit } from "@/lib/ai/rate-limiter";
 import { TEMPERATURES } from "@/lib/ai/config";
@@ -77,24 +76,22 @@ export const POST = async (req: NextRequest) => {
     );
   }
 
-  // Assert path stays inside the uploads dir (no traversal)
-  const resolvedPath = path.resolve(resume.File.filePath);
-  const uploadsDir = path.resolve(APP_CONSTANTS.UPLOADS_DIR);
-  if (
-    !resolvedPath.startsWith(uploadsDir + path.sep) &&
-    resolvedPath !== uploadsDir
-  ) {
+  // The stored key must live under the uploads prefix (no traversal).
+  const objectKey = toObjectKey(resume.File.filePath);
+  const uploadsPrefix = toObjectKey(APP_CONSTANTS.UPLOADS_DIR).replace(/\/+$/, "") + "/";
+  if (!objectKey.startsWith(uploadsPrefix) || objectKey.includes("..")) {
     return NextResponse.json({ error: "Invalid file path" }, { status: 400 });
   }
 
-  if (!fs.existsSync(resolvedPath)) {
+  const stored = await getStorage().get(resume.File.filePath);
+  if (!stored) {
     return NextResponse.json(
-      { error: "File not found on disk. Please re-attach the file." },
+      { error: "File not found in storage. Please re-attach the file." },
       { status: 400 },
     );
   }
 
-  const buf = fs.readFileSync(resolvedPath);
+  const buf = Buffer.from(stored);
 
   const extractResult = await extractText(buf);
   if (!extractResult.success) {

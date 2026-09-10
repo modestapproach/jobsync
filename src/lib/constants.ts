@@ -219,7 +219,9 @@ export const APP_CONSTANTS = {
   TELEMETRY_MAX_ATTR_CHARS: 32_000,
 
   // File uploads
-  UPLOADS_DIR: process.env.NODE_ENV !== "production" ? "data" : "/data",
+  UPLOADS_DIR:
+    process.env.UPLOADS_DIR ??
+    (process.env.NODE_ENV !== "production" ? "data" : "/data"),
 
   // Backup caps. Everything is held in RAM at once, so the upload cap is what
   // bounds memory on a box also running Next and the scheduler; the

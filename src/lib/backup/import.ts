@@ -1,5 +1,5 @@
-import fs from "fs/promises";
 import path from "path";
+import { getStorage } from "@/lib/storage";
 import type JSZip from "jszip";
 import db from "@/lib/db";
 import { APP_CONSTANTS } from "@/lib/constants";
@@ -238,8 +238,6 @@ export async function importBackup(
   // Files are written before the transaction: a failed import leaves orphaned
   // bytes (unlinked below) rather than committed rows pointing at nothing.
   const writtenPaths: string[] = [];
-  const uploadDir = path.join(APP_CONSTANTS.UPLOADS_DIR, "files", "resumes");
-  await fs.mkdir(uploadDir, { recursive: true });
 
   // filePath and fileType are both rebuilt here; neither is taken from the
   // payload. A row whose bytes are absent, oversized or not really a resume
@@ -278,7 +276,7 @@ export async function importBackup(
     const target = importedFilePath(newId, entry.name, checked.kind);
     newFilePaths.set(file.id, target);
     newFileTypes.set(file.id, checked.mimeType);
-    await fs.writeFile(target, bytes);
+    await getStorage().put(target, new Uint8Array(bytes), checked.mimeType);
     writtenPaths.push(target);
   }
 
@@ -368,7 +366,7 @@ export async function importBackup(
     );
   } catch (error) {
     await Promise.all(
-      writtenPaths.map((p) => fs.unlink(p).catch(() => undefined)),
+      writtenPaths.map((p) => getStorage().delete(p).catch(() => undefined)),
     );
     if (error instanceof BackupError) throw error;
     const message = error instanceof Error ? error.message : "";
@@ -383,7 +381,7 @@ export async function importBackup(
   // resume files in UPLOADS_DIR forever with no row pointing at them.
   for (const filePath of oldFilePaths) {
     if (writtenPaths.includes(filePath)) continue;
-    await fs.unlink(filePath).catch((error) => {
+    await getStorage().delete(filePath).catch((error) => {
       log.warn("[Backup] Could not remove replaced file", {
         "file.path": filePath,
         error: String(error),

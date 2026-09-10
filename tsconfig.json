@@ -1,7 +1,14 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "types": ["vitest/globals", "node"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "types": [
+      "vitest/globals",
+      "node"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,7 +26,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     },
     "target": "ES2017"
   },
@@ -30,5 +39,11 @@
     ".next/types/**/*.ts",
     "src/lib/data/seedData.js"
   ],
-  "exclude": ["node_modules", "scripts"]
+  "exclude": [
+    ".open-next",
+    ".wrangler",
+    "node_modules",
+    "scripts",
+    "worker.ts"
+  ]
 }

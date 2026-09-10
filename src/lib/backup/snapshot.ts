@@ -1,5 +1,5 @@
-import fs from "fs/promises";
 import path from "path";
+import { getStorage } from "@/lib/storage";
 import { APP_CONSTANTS } from "@/lib/constants";
 import { buildBackupZip } from "./export";
 import { BackupError, openBackupZip, readManifest } from "./manifest";
@@ -26,33 +26,29 @@ export async function writeSnapshot(
   email: string,
 ): Promise<string> {
   const { buffer } = await buildBackupZip(userId, email);
-  const dir = snapshotDir(userId);
-  await fs.mkdir(dir, { recursive: true });
-
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const target = path.join(dir, `pre-import-${stamp}.zip`);
-  await fs.writeFile(target, buffer);
-
+  const target = path.posix.join(snapshotDir(userId), `pre-import-${stamp}.zip`);
+  await getStorage().put(target, new Uint8Array(buffer), "application/zip");
   await pruneSnapshots(userId, APP_CONSTANTS.BACKUP_SNAPSHOT_KEEP);
   return target;
 }
 
-export async function listSnapshots(userId: string): Promise<SnapshotInfo[]> {
-  const dir = snapshotDir(userId);
-  let names: string[];
-  try {
-    names = await fs.readdir(dir);
-  } catch {
-    return [];
-  }
+async function snapshotObjects(userId: string) {
+  const objects = await getStorage().list(snapshotDir(userId) + "/");
+  return objects
+    .map((o) => ({ ...o, name: path.posix.basename(o.key) }))
+    .filter((o) => SNAPSHOT_ID.test(o.name));
+}
 
+export async function listSnapshots(userId: string): Promise<SnapshotInfo[]> {
   const infos: SnapshotInfo[] = [];
-  for (const name of names.filter((n) => SNAPSHOT_ID.test(n))) {
+  for (const obj of await snapshotObjects(userId)) {
     try {
-      const bytes = await fs.readFile(path.join(dir, name));
-      const manifest = await readManifest(await openBackupZip(bytes));
+      const bytes = await getStorage().get(obj.key);
+      if (!bytes) continue;
+      const manifest = await readManifest(await openBackupZip(Buffer.from(bytes)));
       infos.push({
-        id: name,
+        id: obj.name,
         exportedAt: manifest.exportedAt,
         appVersion: manifest.appVersion,
         counts: manifest.counts,
@@ -62,12 +58,11 @@ export async function listSnapshots(userId: string): Promise<SnapshotInfo[]> {
       // An unreadable snapshot is skipped, not fatal — the list is a recovery
       // surface and must not be taken down by one bad file.
       log.warn("[Backup] Skipping unreadable snapshot", {
-        "snapshot.name": name,
+        "snapshot.name": obj.name,
         error: String(error),
       });
     }
   }
-
   return infos.sort((a, b) => b.exportedAt.localeCompare(a.exportedAt));
 }
 
@@ -78,57 +73,47 @@ export async function readSnapshot(
   if (!SNAPSHOT_ID.test(id)) {
     throw new BackupError("That is not a valid snapshot.");
   }
-  try {
-    return await fs.readFile(path.join(snapshotDir(userId), id));
-  } catch {
+  const bytes = await getStorage().get(path.posix.join(snapshotDir(userId), id));
+  if (!bytes) {
     throw new BackupError("That snapshot no longer exists.");
   }
+  return Buffer.from(bytes);
 }
 
-// Prunes on count and on total bytes. The count alone is not a disk bound:
-// nothing caps how large one snapshot is, these sit on the same volume as the
-// SQLite database, and an import/rollback loop writes one every time. The
-// newest is always kept, even if it alone exceeds the byte budget — dropping
-// the only record of the state a user just left is worse than overshooting.
+// Prunes on count and on total bytes. The count alone is not a storage bound:
+// nothing caps how large one snapshot is, and an import/rollback loop writes
+// one every time. The newest is always kept, even if it alone exceeds the
+// byte budget — dropping the only record of the state a user just left is
+// worse than overshooting.
 export async function pruneSnapshots(
   userId: string,
   keep: number,
 ): Promise<void> {
-  const dir = snapshotDir(userId);
-  let names: string[];
-  try {
-    names = await fs.readdir(dir);
-  } catch {
-    return;
-  }
-
   // Names are ISO-stamped, so a lexical sort is a chronological one.
-  const newestFirst = names.filter((n) => SNAPSHOT_ID.test(n)).sort().reverse();
+  const newestFirst = (await snapshotObjects(userId)).sort((a, b) =>
+    b.name.localeCompare(a.name),
+  );
 
   const stale: string[] = [];
   let running = 0;
 
-  for (const [index, name] of newestFirst.entries()) {
+  for (const [index, obj] of newestFirst.entries()) {
     if (index >= keep) {
-      stale.push(name);
+      stale.push(obj.key);
       continue;
     }
-    const size = await fs
-      .stat(path.join(dir, name))
-      .then((s) => s.size)
-      .catch(() => 0);
-    running += size;
+    running += obj.size;
     if (index > 0 && running > APP_CONSTANTS.BACKUP_SNAPSHOT_MAX_TOTAL_BYTES) {
-      stale.push(name);
+      stale.push(obj.key);
     }
   }
 
-  for (const name of stale) {
-    await fs
-      .unlink(path.join(dir, name))
+  for (const key of stale) {
+    await getStorage()
+      .delete(key)
       .catch((error) =>
         log.warn("[Backup] Could not prune snapshot", {
-          "snapshot.name": name,
+          "snapshot.name": path.posix.basename(key),
           error: String(error),
         }),
       );

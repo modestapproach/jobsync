@@ -1,5 +1,5 @@
-import fs from "fs/promises";
 import path from "path";
+import { getStorage } from "@/lib/storage";
 import JSZip from "jszip";
 import db from "@/lib/db";
 import { INSERT_ORDER, MODEL_SPECS, type BackupModel } from "./ordering";
@@ -106,7 +106,8 @@ export async function buildBackupZip(
   const zip = new JSZip();
   for (const file of data.File) {
     try {
-      const bytes = await fs.readFile(file.filePath);
+      const bytes = await getStorage().get(file.filePath);
+      if (!bytes) throw new Error("file missing from storage");
       zip.file(`files/${file.id}/${path.basename(file.filePath)}`, bytes);
     } catch {
       file.fileMissing = true;

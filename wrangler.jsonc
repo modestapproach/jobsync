@@ -1,0 +1,47 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "jobsync",
+  "main": "./worker.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "jobsync-db",
+      "database_id": "c9a0ec34-e975-4273-9283-0666e9a57816",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "FILES",
+      "bucket_name": "jobsync-files"
+    }
+  ],
+  "triggers": {
+    // One scheduler tick per hour. The app's own SCHEDULER_CONSTANTS decide
+    // which automations are actually due inside a tick.
+    "crons": ["0 * * * *"]
+  },
+  "vars": {
+    "NODE_ENV": "production",
+    "AUTH_TRUST_HOST": "true",
+    "MCP_ENABLED": "true",
+    "TZ": "America/Los_Angeles",
+    "UPLOADS_DIR": "data"
+  }
+  // Secrets (set with `wrangler secret put <NAME>`, never in this file):
+  //   AUTH_SECRET       next-auth session signing
+  //   ENCRYPTION_KEY    at-rest encryption of stored provider API keys
+  //   CRON_SECRET       shared secret between worker.ts and /api/automations/tick
+  //   NEXTAUTH_URL      https://jobs.dash.teddessert.com
+  // Custom domain is attached after the first deploy:
+  //   "routes": [{ "pattern": "jobs.dash.teddessert.com", "custom_domain": true }]
+}
