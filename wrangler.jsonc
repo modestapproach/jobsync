@@ -31,7 +31,7 @@
     "crons": ["0 * * * *"]
   },
   "routes": [
-    { "pattern": "jobs.dash.teddessert.com", "custom_domain": true }
+    { "pattern": "jobs.teddessert.com", "custom_domain": true }
   ],
   "vars": {
     "NODE_ENV": "production",
@@ -44,5 +44,5 @@
   //   AUTH_SECRET       next-auth session signing
   //   ENCRYPTION_KEY    at-rest encryption of stored provider API keys
   //   CRON_SECRET       shared secret between worker.ts and /api/automations/tick
-  //   NEXTAUTH_URL      https://jobs.dash.teddessert.com
+  //   NEXTAUTH_URL      https://jobs.teddessert.com
 }
