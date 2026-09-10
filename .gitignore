@@ -83,3 +83,6 @@ evals/*/_investigate-*
 .open-next/
 .wrangler/
 cloudflare-env.d.ts
+
+# local copy of Cloudflare secrets (never commit)
+.env.cloudflare
