@@ -17,8 +17,25 @@ export const authConfig = {
   },
   secret: process.env.AUTH_SECRET,
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
+    authorized({ auth, request }) {
+      const { nextUrl } = request;
       const isLoggedIn = !!auth?.user;
+      // Behind Cloudflare Access every request carries a signed identity, so
+      // the password form is skipped: /signin hands off to Google SSO. After
+      // a sign-out (?manual=1) or a failed SSO (?sso=…) the form stays.
+      if (
+        nextUrl.pathname === "/signin" &&
+        !isLoggedIn &&
+        request.headers.has("cf-access-jwt-assertion") &&
+        !nextUrl.searchParams.has("manual") &&
+        !nextUrl.searchParams.has("sso") &&
+        !nextUrl.searchParams.has("error")
+      ) {
+        const sso = new URL("/signin/sso", nextUrl);
+        const callbackUrl = nextUrl.searchParams.get("callbackUrl");
+        if (callbackUrl) sso.searchParams.set("callbackUrl", callbackUrl);
+        return Response.redirect(sso);
+      }
       const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
       const isApiRoute = nextUrl.pathname.startsWith("/api");
 

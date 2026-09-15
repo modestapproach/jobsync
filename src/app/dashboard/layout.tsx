@@ -30,7 +30,7 @@ export default async function RootLayout({
 
   const signOutAction = async () => {
     "use server";
-    await signOut({ redirectTo: "/signin" });
+    await signOut({ redirectTo: "/signin?manual=1" });
   };
 
   // The session outlived the database it was minted against: middleware still

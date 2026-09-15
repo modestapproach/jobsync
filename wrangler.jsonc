@@ -38,7 +38,12 @@
     "AUTH_TRUST_HOST": "true",
     "MCP_ENABLED": "true",
     "TZ": "America/Los_Angeles",
-    "UPLOADS_DIR": "data"
+    "UPLOADS_DIR": "data",
+    // Cloudflare Access SSO (Google login); see src/lib/cloudflare-access.ts.
+    "ACCESS_TEAM_DOMAIN": "https://sparkling-heart-4a51.cloudflareaccess.com",
+    "ACCESS_AUD": "add7830086295eb44a9332df888990a4c81860b59c65c8b2fa34b120744d2e84",
+    "ACCESS_ALLOWED_EMAILS": "ted@teddessert.com,theodoreyd@gmail.com",
+    "ACCESS_USER_EMAIL": "ted@teddessert.com"
   }
   // Secrets (set with `wrangler secret put <NAME>`, never in this file):
   //   AUTH_SECRET       next-auth session signing
