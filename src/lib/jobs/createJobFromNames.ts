@@ -37,6 +37,7 @@ export interface CreateJobFromNamesInput {
   jobUrl?: string;
   salaryRange?: string;
   tags?: string[];
+  contactLedgerIds?: string[];
   allowDuplicate?: boolean;
   createdVia?: string;
 }
@@ -69,6 +70,7 @@ export async function createJobFromNames(
     jobUrl,
     salaryRange,
     tags = [],
+    contactLedgerIds,
     allowDuplicate = false,
     createdVia,
   } = input;
@@ -147,6 +149,7 @@ export async function createJobFromNames(
     tagIds: resolvedTagsResult.resolved.map((t) => t.id),
     createdVia: createdVia ?? null,
     descriptionCompleteness,
+    contactLedgerIds: contactLedgerIds?.length ? contactLedgerIds.join(",") : null,
   });
 
   const message = buildSuccessMessage(resolutions, resolvedTagsResult.dropped, job.id);

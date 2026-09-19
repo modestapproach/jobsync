@@ -325,6 +325,11 @@ model Job {
 
   // MCP provenance: which agent/token created this job (null = UI or automation)
   createdVia      String?
+
+  // Link contract: people tied to this job (referrer, recruiter, hiring
+  // manager) as comma-separated `ledger:person:<uuid>` ids. The identity
+  // ledger owns who they are; JobSync only references them.
+  contactLedgerIds String?
   // Word-count classification of `description` at write time:
   // "title-only" | "partial" | "full". Null for pre-existing/UI jobs.
   descriptionCompleteness String?

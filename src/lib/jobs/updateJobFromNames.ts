@@ -38,6 +38,7 @@ export interface UpdateJobFromNamesInput {
   jobUrl?: string;
   salaryRange?: string;
   tags?: string[];
+  contactLedgerIds?: string[];
 }
 
 export interface UpdateJobFromNamesResult {
@@ -126,6 +127,11 @@ export async function updateJobFromNames(
   if (input.appliedDate !== undefined) data.appliedDate = input.appliedDate;
   if (input.applied === true && input.appliedDate === undefined) {
     data.appliedDate = new Date();
+  }
+  if (input.contactLedgerIds !== undefined) {
+    data.contactLedgerIds = input.contactLedgerIds.length
+      ? [...new Set(input.contactLedgerIds)].join(",")
+      : null;
   }
   if (resolvedTagsResult) {
     data.tags = { set: resolvedTagsResult.resolved.map((t) => ({ id: t.id })) };

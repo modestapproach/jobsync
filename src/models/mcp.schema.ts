@@ -19,6 +19,18 @@ const workplaceTypeField = z
   .describe(`Work arrangement stated in the posting. One of: ${Object.values(WORKPLACE_TYPES).join(", ")}.`);
 
 // Raw input shape for MCP tool registration (no transforms — SDK uses this for JSON schema)
+// Link contract: jobs reference people by identity-ledger id only. JobSync
+// never stores names or handles for them — the ledger owns identity.
+export const LEDGER_PERSON_ID =
+  /^ledger:person:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const contactLedgerIdsField = z
+  .array(z.string().regex(LEDGER_PERSON_ID, "must look like ledger:person:<uuid>"))
+  .max(10)
+  .optional()
+  .describe(
+    "People tied to this job (referrer, recruiter, hiring manager) as identity-ledger ids, e.g. ['ledger:person:<uuid>']. Look the person up in the ledger first; never pass a name. Replaces the existing list; [] clears it.",
+  );
+
 export const McpAddJobInputShape = {
   company: z.string().min(1, "company is required"),
   jobTitle: z.string().min(1, "jobTitle is required"),
@@ -51,6 +63,7 @@ export const McpAddJobInputShape = {
   jobUrl: z.string().url().optional().describe("Direct URL to the job posting"),
   salaryRange: z.string().optional().describe("Salary range as a free-form string, e.g. '$120k–$150k' or '100,000 CAD'"),
   tags: z.array(z.string()).optional().describe("Skills required for the job (max 10 applied, extras are dropped). Tags are created if they don't exist. e.g. ['React', 'TypeScript', 'Node.js']"),
+  contactLedgerIds: contactLedgerIdsField,
   allowDuplicate: z
     .boolean()
     .optional()
@@ -157,6 +170,11 @@ export const McpListJobsInputShape = {
     .optional()
     .describe("Filter by status value (e.g. saved, applied, interviewing). Omit for all."),
   applied: z.boolean().optional().describe("true = only applied roles, false = only not-yet-applied."),
+  contactLedgerId: z
+    .string()
+    .regex(LEDGER_PERSON_ID)
+    .optional()
+    .describe("Only roles linked to this person (ledger:person:<uuid>)."),
   limit: z.number().int().min(1).max(100).default(25).describe("Max rows to return (1-100, default 25)."),
   offset: z.number().int().min(0).default(0).describe("Rows to skip, for paging."),
 };
@@ -207,6 +225,7 @@ export const McpUpdateJobInputShape = {
     .describe(
       "Skills required for the job, e.g. ['React', 'TypeScript']. Replaces the job's existing tags wholesale rather than merging, so include the tags returned by find_job that should be kept (max 10 applied).",
     ),
+  contactLedgerIds: contactLedgerIdsField,
 };
 
 export const McpUpdateJobSchema = z.object({

@@ -19,6 +19,7 @@ export async function handleListJobs(
     userId,
     ...(input.status ? { Status: { value: input.status } } : {}),
     ...(input.applied === undefined ? {} : { applied: input.applied }),
+    ...(input.contactLedgerId ? { contactLedgerIds: { contains: input.contactLedgerId } } : {}),
   };
   const [total, rows] = await Promise.all([
     prisma.job.count({ where }),
@@ -36,6 +37,7 @@ export async function handleListJobs(
         createdAt: true,
         matchScore: true,
         discoveryStatus: true,
+        contactLedgerIds: true,
         Status: { select: { value: true } },
         JobTitle: { select: { label: true } },
         Company: { select: { label: true } },
@@ -69,6 +71,7 @@ export async function handleListJobs(
       discoveryStatus: j.discoveryStatus ?? null,
       savedAt: j.createdAt.toISOString(),
       url: j.jobUrl ?? null,
+      contactLedgerIds: j.contactLedgerIds ? j.contactLedgerIds.split(",") : [],
     }),
   );
   const shown = `${input.offset + 1}-${input.offset + rows.length}`;

@@ -198,6 +198,8 @@ const Job = z.object({
   discoveredAt: optDt,
   createdVia: optStr,
   descriptionCompleteness: optStr,
+  // Added after the first backups were taken: absent in older exports.
+  contactLedgerIds: optStr.default(null),
 });
 
 const Note = z.object({

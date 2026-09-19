@@ -34,6 +34,7 @@ export async function handleFindJob(
         descriptionCompleteness: true,
         matchScore: true,
         createdVia: true,
+        contactLedgerIds: true,
         Status: { select: { value: true } },
         tags: { select: { label: true } },
       },
@@ -54,7 +55,7 @@ export async function handleFindJob(
     const text =
       `Found existing job "${existing.title}" at "${existing.company}" ` +
       `(id: ${existing.id}, status: ${status}, description: ${completeness}, ` +
-      `match: ${score}, tags: ${tagsList}). ` +
+      `match: ${score}, tags: ${tagsList}, contacts: ${detail?.contactLedgerIds ?? "none"}). ` +
       (updatable
         ? `Call update_job with jobId "${existing.id}" to enrich or correct it ` +
           `instead of adding a duplicate. Tags are replaced wholesale, not ` +

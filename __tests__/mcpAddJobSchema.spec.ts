@@ -37,3 +37,19 @@ describe("workplaceType schema", () => {
     expect(AgentAddJobSchema.parse({ company: "Acme", jobTitle: "Engineer", workplaceType: "On-site" }).workplaceType).toBe("Onsite");
   });
 });
+
+// Link contract: a job references people by identity-ledger id, never by name.
+describe("contactLedgerIds schema", () => {
+  const id = "ledger:person:b9ce7c04-ab61-443b-b5b4-f74fadc6924d";
+  for (const [tool, shape] of [["add_job", McpAddJobInputShape], ["update_job", McpUpdateJobInputShape]] as const) {
+    const schema = z.object({ contactLedgerIds: (shape as any).contactLedgerIds });
+    it(`${tool} accepts ledger ids and an empty list`, () => {
+      expect(schema.parse({ contactLedgerIds: [id] }).contactLedgerIds).toEqual([id]);
+      expect(schema.parse({ contactLedgerIds: [] }).contactLedgerIds).toEqual([]);
+    });
+    it(`${tool} rejects a name or a bare uuid`, () => {
+      expect(schema.safeParse({ contactLedgerIds: ["Carmelina Piedra"] }).success).toBe(false);
+      expect(schema.safeParse({ contactLedgerIds: [id.slice("ledger:person:".length)] }).success).toBe(false);
+    });
+  }
+});
