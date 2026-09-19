@@ -19,7 +19,11 @@ export async function handleListJobs(
     userId,
     ...(input.status ? { Status: { value: input.status } } : {}),
     ...(input.applied === undefined ? {} : { applied: input.applied }),
-    ...(input.contactLedgerId ? { contactLedgerIds: { contains: input.contactLedgerId } } : {}),
+    // Match on the uuid alone: D1 rejects LIKE patterns over 50 bytes ("pattern
+    // too complex"), and `%ledger:person:<uuid>%` is 52.
+    ...(input.contactLedgerId
+      ? { contactLedgerIds: { contains: input.contactLedgerId.slice("ledger:person:".length) } }
+      : {}),
   };
   const [total, rows] = await Promise.all([
     prisma.job.count({ where }),
